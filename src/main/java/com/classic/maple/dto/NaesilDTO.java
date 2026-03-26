@@ -12,7 +12,12 @@ public class NaesilDTO {
     public static class Basic {
         @JsonProperty("character_name") private String characterName;
         @JsonProperty("world_name") private String worldName;
-        @JsonProperty("character_guild_name") private String characterGuildName;
+    }
+
+    // 🌟 길드 이름만 따로 가져올 전용 클래스 추가
+    @Getter @NoArgsConstructor @JsonIgnoreProperties(ignoreUnknown = true)
+    public static class Guild {
+        @JsonProperty("guild_name") private String guildName;
     }
 
     @Getter @NoArgsConstructor @JsonIgnoreProperties(ignoreUnknown = true)
@@ -35,7 +40,7 @@ public class NaesilDTO {
         @Getter @NoArgsConstructor @JsonIgnoreProperties(ignoreUnknown = true)
         public static class Item {
             @JsonProperty("item_name") private String itemName;
-            @JsonProperty("item_equipment_slot_name") private String itemSlotName; // 🌟 한벌옷 판별용 추가
+            @JsonProperty("item_equipment_slot_name") private String itemSlotName;
             @JsonProperty("starforce_upgrade") private String starforce;
             @JsonProperty("item_potential_option") private List<Option> potential;
             @JsonProperty("item_additional_potential_option") private List<Option> additional;
@@ -109,6 +114,25 @@ public class NaesilDTO {
         @Getter @NoArgsConstructor @JsonIgnoreProperties(ignoreUnknown = true)
         public static class Info {
             @JsonProperty("skill_name") private String skillName;
+        }
+    }
+
+    // 🌟 길드 정보 전용 클래스 (길드원 전체 목록 포함)
+    @Getter @NoArgsConstructor @JsonIgnoreProperties(ignoreUnknown = true)
+    public static class GuildBasic {
+        @JsonProperty("guild_member") private List<GuildMember> guildMember;
+
+        @Getter @NoArgsConstructor @JsonIgnoreProperties(ignoreUnknown = true)
+        public static class GuildMember {
+            @JsonProperty("character_name") private String characterName;
+            @JsonProperty("guild_personal_skill") private List<PersonalSkill> guildPersonalSkill;
+        }
+
+        @Getter @NoArgsConstructor @JsonIgnoreProperties(ignoreUnknown = true)
+        public static class PersonalSkill {
+            @JsonProperty("skill_name") private String skillName;
+            @JsonProperty("skill_level") private Integer skillLevel;
+            @JsonProperty("skill_option") private String skillOption;
         }
     }
 }

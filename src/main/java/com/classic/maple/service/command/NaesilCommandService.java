@@ -3,6 +3,7 @@ package com.classic.maple.service.command;
 import com.classic.maple.dto.NaesilDTO;
 import com.classic.maple.service.core.NexonApiClient;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -12,6 +13,7 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class NaesilCommandService {
@@ -50,8 +52,6 @@ public class NaesilCommandService {
             if (bossItems != null && !bossItems.isEmpty()) {
                 for (NaesilDTO.Equip.Item item : bossItems) {
                     String name = item.getItemName() != null ? item.getItemName() : "";
-
-                    // 🌟 기본 스타포스와 한벌옷 2배 합산 로직
                     int baseSf = 0;
                     if (item.getStarforce() != null && !item.getStarforce().isEmpty()) {
                         try { baseSf = Integer.parseInt(item.getStarforce()); } catch (Exception ignored) {}
@@ -165,8 +165,47 @@ public class NaesilCommandService {
         if (!linkFound) sb.append("장착 중인 링크 스킬이 없습니다.\n");
         sb.append("\n");
 
-        sb.append("🍁 【 길드 스킬 (").append(basic.getCharacterGuildName() != null ? basic.getCharacterGuildName() : "없음").append(") 】\n");
-        sb.append("API 스펙상 길드 스킬 상세 내역은 현재 지원되지 않습니다.");
+        // 🌟 8. 길드 개인 스킬 (완벽 수정본)
+        NaesilDTO.Guild guild = apiClient.fetchApiData("/character/guild", ocid, NaesilDTO.Guild.class);
+        String gName = (guild != null && guild.getGuildName() != null) ? guild.getGuildName() : null;
+
+        sb.append("🍁 【 길드 개인 스킬 (").append(gName != null ? gName : "없음").append(") 】\n");
+        if (gName != null && !gName.isEmpty()) {
+            String oguildId = apiClient.getGuildId(gName, basic.getWorldName() != null ? basic.getWorldName() : worldName);
+
+            if (oguildId != null) {
+                NaesilDTO.GuildBasic guildBasic = apiClient.fetchGuildData("/guild/basic", oguildId, NaesilDTO.GuildBasic.class);
+
+                boolean skillFound = false;
+                if (guildBasic != null && guildBasic.getGuildMember() != null) {
+                    // 🌟 길드원 명단 중에서 명령어를 호출한 자기 자신(characterName) 찾기
+                    for (NaesilDTO.GuildBasic.GuildMember member : guildBasic.getGuildMember()) {
+                        if (characterName.equals(member.getCharacterName())) {
+                            if (member.getGuildPersonalSkill() != null && !member.getGuildPersonalSkill().isEmpty()) {
+                                for (NaesilDTO.GuildBasic.PersonalSkill skill : member.getGuildPersonalSkill()) {
+                                    String sName = skill.getSkillName() != null ? skill.getSkillName() : "알 수 없는 스킬";
+                                    String sOption = skill.getSkillOption() != null ? skill.getSkillOption() : "설명 없음";
+
+                                    // 포맷에 맞게 줄바꿈 처리하여 출력
+                                    sb.append("▪ ").append(sName).append("\n");
+                                    sb.append("  └ ").append(sOption.replace("\n", " / ")).append("\n\n");
+                                }
+                                skillFound = true;
+                            }
+                            break; // 내 캐릭터를 찾았으면 더 이상 순회할 필요 없음
+                        }
+                    }
+                }
+
+                if (!skillFound) {
+                    sb.append("적용 중인 길드 개인 스킬이 없습니다.\n");
+                }
+            } else {
+                sb.append("길드 정보를 불러올 수 없습니다.\n");
+            }
+        } else {
+            sb.append("가입된 길드가 없습니다.\n");
+        }
 
         return sb.toString().trim();
     }
