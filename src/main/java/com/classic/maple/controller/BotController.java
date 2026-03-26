@@ -3,6 +3,7 @@ package com.classic.maple.controller;
 import com.classic.maple.service.command.BossCommandService;
 import com.classic.maple.service.command.InfoCommandService;
 import com.classic.maple.service.command.NaesilCommandService;
+import com.classic.maple.service.command.SymbolCommandService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -19,6 +20,7 @@ public class BotController {
     private final InfoCommandService infoCommandService;
     private final BossCommandService bossCommandService;
     private final NaesilCommandService naesilCommandService;
+    private final SymbolCommandService symbolCommandService;
 
     @GetMapping("/help")
     public String getHelpCommand() {
@@ -135,5 +137,11 @@ public class BotController {
     public String getNaesilCommand(@RequestParam String name, @RequestParam(required = false, defaultValue = "스카니아") String world) {
         log.info(".내실 요청 - 캐릭터명: {}, 월드: {}", name, world);
         return naesilCommandService.getCharacterNaesil(name, world);
+    }
+
+    @GetMapping("/symbol")
+    public String getSymbolCommand(@RequestParam String name, @RequestParam(required = false, defaultValue = "스카니아") String world) {
+        log.info(".심볼 요청 - 캐릭터명: {}, 월드: {}", name, world);
+        return symbolCommandService.getCharacterSymbol(name, world);
     }
 }

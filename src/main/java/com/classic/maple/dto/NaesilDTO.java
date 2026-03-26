@@ -14,7 +14,6 @@ public class NaesilDTO {
         @JsonProperty("world_name") private String worldName;
     }
 
-    // 🌟 길드 이름만 따로 가져올 전용 클래스 추가
     @Getter @NoArgsConstructor @JsonIgnoreProperties(ignoreUnknown = true)
     public static class Guild {
         @JsonProperty("guild_name") private String guildName;
@@ -53,6 +52,7 @@ public class NaesilDTO {
         }
     }
 
+    // 🌟 심볼 상세 필드 추가
     @Getter @NoArgsConstructor @JsonIgnoreProperties(ignoreUnknown = true)
     public static class Symbol {
         @JsonProperty("arcane_symbol") private List<Data> arcaneSymbol;
@@ -60,6 +60,9 @@ public class NaesilDTO {
 
         @Getter @NoArgsConstructor @JsonIgnoreProperties(ignoreUnknown = true)
         public static class Data {
+            @JsonProperty("symbol_name") private String symbolName;
+            @JsonProperty("symbol_level") private Integer symbolLevel;
+            @JsonProperty("symbol_growth_value") private Integer symbolGrowthValue;
             @JsonProperty("symbol_option") private String symbolOption;
         }
     }
@@ -117,7 +120,6 @@ public class NaesilDTO {
         }
     }
 
-    // 🌟 길드 정보 전용 클래스 (길드원 전체 목록 포함)
     @Getter @NoArgsConstructor @JsonIgnoreProperties(ignoreUnknown = true)
     public static class GuildBasic {
         @JsonProperty("guild_member") private List<GuildMember> guildMember;

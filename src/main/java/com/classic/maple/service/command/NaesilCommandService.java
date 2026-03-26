@@ -188,7 +188,7 @@ public class NaesilCommandService {
 
                                     // 포맷에 맞게 줄바꿈 처리하여 출력
                                     sb.append("▪ ").append(sName).append("\n");
-                                    sb.append("  └ ").append(sOption.replace("\n", " / ")).append("\n\n");
+                                    sb.append(" └ ").append(sOption.replace("\n", " / ")).append("\n\n");
                                 }
                                 skillFound = true;
                             }
