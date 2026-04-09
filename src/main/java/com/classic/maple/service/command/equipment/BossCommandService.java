@@ -1,4 +1,4 @@
-package com.classic.maple.service.command;
+package com.classic.maple.service.command.equipment;
 
 import com.classic.maple.dto.CharacterBasicDTO;
 import com.classic.maple.dto.ItemEquipmentDTO;

@@ -1,4 +1,4 @@
-package com.classic.maple.service.command;
+package com.classic.maple.service.command.character;
 
 import com.classic.maple.dto.NaesilDTO;
 import com.classic.maple.service.core.NexonApiClient;
