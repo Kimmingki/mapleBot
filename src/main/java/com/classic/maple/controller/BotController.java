@@ -19,6 +19,7 @@ public class BotController {
     private final NaesilCommandService naesilCommandService;
     private final SymbolCommandService symbolCommandService;
     private final VMatrixCommandService vMatrixCommandService;
+    private final CodiCommandService codiCommandService;
 
     @GetMapping("/help")
     public String getHelpCommand() {
@@ -148,9 +149,10 @@ public class BotController {
         log.info(".코강 요청 - 캐릭터명: {}, 월드: {}", name, world);
         return vMatrixCommandService.getCharacterVMatrix(name, world);
     }
-    @GetMapping("/vmatrixDebug")
-    public String getVMatrixCommandDebug(@RequestParam String name, @RequestParam(required = false, defaultValue = "스카니아") String world) {
-        log.info(".코강 요청 - 캐릭터명: {}, 월드: {}", name, world);
-        return vMatrixCommandService.getCharacterVMatrixDebug(name, world);
+
+    @GetMapping("/codi")
+    public String getCodiCommand(@RequestParam String name, @RequestParam(required = false, defaultValue = "스카니아") String world) {
+        log.info(".코디 요청 - 캐릭터명: {}, 월드: {}", name, world);
+        return codiCommandService.getCharacterCodi(name, world);
     }
 }
