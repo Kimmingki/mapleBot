@@ -98,4 +98,37 @@ public class DebugCommandService {
         }
         return sb.toString();
     }
+
+    public String debugGuildSkill(String characterName, String worldName) {
+        StringBuilder sb = new StringBuilder("🍁 [.길스] 디버그 결과\n\n");
+        try {
+            String ocid = getOcidSafe(characterName, worldName);
+            appendRawData(sb, "기본 정보", "/character/basic", "ocid", ocid);
+
+            // 1. 길드명 조회 원본 데이터
+            String guildRaw = apiClient.fetchApiData("/character/guild", ocid, String.class);
+            sb.append("💎 [길드명 조회] 원본 JSON:\n").append(guildRaw != null ? guildRaw : "데이터 없음").append("\n\n");
+
+            // 2. 길드 상세 정보 조회를 위해 기존 DTO를 잠시 빌려 길드명 추출
+            com.classic.maple.dto.NaesilDTO.Guild guildDto = apiClient.fetchApiData("/character/guild", ocid, com.classic.maple.dto.NaesilDTO.Guild.class);
+
+            if (guildDto != null && guildDto.getGuildName() != null) {
+                String guildName = guildDto.getGuildName();
+                String oguildId = apiClient.getGuildId(guildName, worldName);
+
+                if (oguildId != null) {
+                    // 3. 최종 목적인 길드 베이직(스킬 및 기여도 포함) 원본 데이터 추출
+                    appendRawData(sb, "길드 상세 정보 (기여도 및 스킬)", "/guild/basic", "oguild_id", oguildId);
+                } else {
+                    sb.append("길드 ID(oguild_id)를 발급받을 수 없습니다.\n\n");
+                }
+            } else {
+                sb.append("가입된 길드가 없거나 길드명을 조회할 수 없습니다.\n\n");
+            }
+
+        } catch (Exception e) {
+            sb.append("에러 발생: ").append(e.getMessage());
+        }
+        return sb.toString();
+    }
 }

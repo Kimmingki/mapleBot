@@ -20,6 +20,7 @@ public class BotController {
     private final SymbolCommandService symbolCommandService;
     private final VMatrixCommandService vMatrixCommandService;
     private final CodiCommandService codiCommandService;
+    private final GuildSkillCommandService guildSkillCommandService;
 
     @GetMapping("/help")
     public String getHelpCommand() {
@@ -154,5 +155,11 @@ public class BotController {
     public String getCodiCommand(@RequestParam String name, @RequestParam(required = false, defaultValue = "스카니아") String world) {
         log.info(".코디 요청 - 캐릭터명: {}, 월드: {}", name, world);
         return codiCommandService.getCharacterCodi(name, world);
+    }
+
+    @GetMapping("/guildskill")
+    public String getGuildSkillCommand(@RequestParam String name, @RequestParam(required = false, defaultValue = "스카니아") String world) {
+        log.info(".길스 요청 - 캐릭터명: {}, 월드: {}", name, world);
+        return guildSkillCommandService.getCharacterGuildSkill(name, world);
     }
 }

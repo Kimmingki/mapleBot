@@ -41,4 +41,10 @@ public class DebugController {
         log.info("[DEBUG] .코디 원본 데이터 요청 - 캐릭터명: {}", name);
         return debugCommandService.debugCodi(name, world);
     }
+
+    @GetMapping("/guildskill")
+    public String debugGuildSkill(@RequestParam String name, @RequestParam(required = false, defaultValue = "스카니아") String world) {
+        log.info("[DEBUG] .길스 원본 데이터 요청 - 캐릭터명: {}, 월드: {}", name, world);
+        return debugCommandService.debugGuildSkill(name, world);
+    }
 }
