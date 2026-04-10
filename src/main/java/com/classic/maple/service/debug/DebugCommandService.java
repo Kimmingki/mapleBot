@@ -131,4 +131,22 @@ public class DebugCommandService {
         }
         return sb.toString();
     }
+
+    public String debugHexa(String characterName, String worldName) {
+        StringBuilder sb = new StringBuilder("🍁 [.헥사] 디버그 결과\n\n");
+        try {
+            String ocid = getOcidSafe(characterName, worldName);
+            appendRawData(sb, "기본 정보", "/character/basic", "ocid", ocid);
+
+            // 1. 헥사 스킬 코어 원본 데이터 덤프
+            appendRawData(sb, "헥사 스킬 코어", "/character/hexamatrix-skill", "ocid", ocid);
+
+            // 2. 헥사 스탯 원본 데이터 덤프
+            appendRawData(sb, "헥사 스탯", "/character/hexamatrix-stat", "ocid", ocid);
+
+        } catch (Exception e) {
+            sb.append("에러 발생: ").append(e.getMessage());
+        }
+        return sb.toString();
+    }
 }

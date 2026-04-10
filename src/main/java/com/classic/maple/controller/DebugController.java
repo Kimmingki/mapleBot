@@ -47,4 +47,10 @@ public class DebugController {
         log.info("[DEBUG] .길스 원본 데이터 요청 - 캐릭터명: {}, 월드: {}", name, world);
         return debugCommandService.debugGuildSkill(name, world);
     }
+
+    @GetMapping("/hexa")
+    public String debugHexa(@RequestParam String name, @RequestParam(required = false, defaultValue = "스카니아") String world) {
+        log.info("[DEBUG] .헥사 원본 데이터 요청 - 캐릭터명: {}, 월드: {}", name, world);
+        return debugCommandService.debugHexa(name, world);
+    }
 }

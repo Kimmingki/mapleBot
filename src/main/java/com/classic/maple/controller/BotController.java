@@ -22,6 +22,7 @@ public class BotController {
     private final VMatrixCommandService vMatrixCommandService;
     private final CodiCommandService codiCommandService;
     private final GuildSkillCommandService guildSkillCommandService;
+    private final HexaCommandService hexaCommandService;
 
     @GetMapping("/help")
     public String getHelpCommand() {
@@ -162,5 +163,11 @@ public class BotController {
     public String getGuildSkillCommand(@RequestParam String name, @RequestParam(required = false, defaultValue = "스카니아") String world) {
         log.info(".길스 요청 - 캐릭터명: {}, 월드: {}", name, world);
         return guildSkillCommandService.getCharacterGuildSkill(name, world);
+    }
+
+    @GetMapping("/hexa")
+    public String getHexaCommand(@RequestParam String name, @RequestParam(required = false, defaultValue = "스카니아") String world) {
+        log.info(".헥사 요청 - 캐릭터명: {}, 월드: {}", name, world);
+        return hexaCommandService.getCharacterHexa(name, world);
     }
 }
