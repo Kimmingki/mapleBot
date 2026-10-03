@@ -69,20 +69,17 @@ public class VMatrixCommandService {
         // 🌟 1. V코어 분류 로직
         if (vCoreInfo != null && vCoreInfo.getVCores() != null) {
             for (VMatrixDTO.VCoreInfo.VCore core : vCoreInfo.getVCores()) {
+                // 미장착 코어 제외 (플래그 누락 시 표시 유지)
+                if ("0".equals(core.getEquipmentFlag())) continue;
+
                 String cType = core.getVcoreType() != null ? core.getVcoreType() : "";
-                String cName = core.getVcoreName() != null ? core.getVcoreName() : "알 수 없음";
+                String cName = joinSkillNames(core);
                 int cLevel = core.getVcoreLevel() != null ? core.getVcoreLevel() : 0;
-                int sLevel = core.getSlotLevel() != null ? core.getSlotLevel() : 0;
+                long cScore = core.getVcoreScore() != null ? core.getVcoreScore() : 0L;
 
                 if ("Enhancement".equals(cType)) {
-                    // 강화 코어는 3개의 스킬 이름을 조합
-                    List<String> skills = new ArrayList<>();
-                    if (core.getSkillName1() != null) skills.add(core.getSkillName1());
-                    if (core.getSkillName2() != null) skills.add(core.getSkillName2());
-                    if (core.getSkillName3() != null) skills.add(core.getSkillName3());
-                    String combinedSkills = String.join(" / ", skills);
-
-                    enhanceCores.add(String.format("▪ [ Lv.%d ] %s [ %dP ]", cLevel, combinedSkills, sLevel));
+                    // 강화 코어는 최대 4개의 스킬 이름을 조합
+                    enhanceCores.add(String.format("▪ [ Lv.%d ] %s [ %dP ]", cLevel, cName, cScore));
                 } else if ("Skill".equals(cType)) {
                     // 스킬 코어 중 '쓸만한' 분리
                     if (cName.startsWith("쓸만한")) {
@@ -152,5 +149,14 @@ public class VMatrixCommandService {
         }
 
         return sb.toString().trim();
+    }
+
+    // V코어 스킬명 1~4 조합 (null·공백 제외, 전부 비면 "알 수 없음")
+    private String joinSkillNames(VMatrixDTO.VCoreInfo.VCore core) {
+        List<String> skills = new ArrayList<>();
+        for (String name : new String[]{core.getSkillName1(), core.getSkillName2(), core.getSkillName3(), core.getSkillName4()}) {
+            if (name != null && !name.isBlank()) skills.add(name);
+        }
+        return skills.isEmpty() ? "알 수 없음" : String.join(" / ", skills);
     }
 }

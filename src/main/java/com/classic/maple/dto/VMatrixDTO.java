@@ -22,15 +22,17 @@ public class VMatrixDTO {
 
         @Getter @NoArgsConstructor @JsonIgnoreProperties(ignoreUnknown = true)
         public static class VCore {
-            @JsonProperty("slot_level") private Integer slotLevel;
-            @JsonProperty("vcore_name") private String vcoreName;
             @JsonProperty("vcore_level") private Integer vcoreLevel;
             @JsonProperty("vcore_type") private String vcoreType; // Enhancement, Skill, Special
+            @JsonProperty("vcore_score") private Long vcoreScore; // 코어 점수 (int64)
 
-            // 강화 코어의 3줄 스킬
+            // 코어 스킬명 1~4 (강화 코어: 조합 표시, 스킬·특수 코어: 1번이 코어명)
             @JsonProperty("vcore_skill_name1") private String skillName1;
             @JsonProperty("vcore_skill_name2") private String skillName2;
             @JsonProperty("vcore_skill_name3") private String skillName3;
+            @JsonProperty("vcore_skill_name4") private String skillName4;
+
+            @JsonProperty("vcore_equipment_flag") private String equipmentFlag; // 장착 여부 (0:미장착, 1:장착)
         }
     }
 
