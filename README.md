@@ -94,8 +94,8 @@ curl "http://localhost:8081/api/bot/info?name=캐릭터명&world=스카니아"
 | `.경험치` | 경험치 | 현재 레벨, 누적 경험치 |
 | `.보스` | 보스 프리셋 장비 | 세트 구성(앜/앱/칠), 스타포스, 장착 소울, 부위별 잠재·추옵·가위 횟수 |
 | `.내실` | 내실 요약 | 유니온, 보스 장비 세트, 아케인/어센틱 포스, 헥사, 링크 스킬, 길드 개인 스킬 |
-| `.심볼` | 심볼 정보 | 아케인/어센틱 포스, 지역별 심볼 레벨·누적 개수 |
-| `.코강` | V매트릭스 | 강화 코어 목록, 스킬 프리셋 |
+| `.심볼` | 심볼 정보 | 아케인/어센틱 포스, 지역별 심볼 레벨·현재 성장치, MAX까지 남은 심볼 개수·필요 메소 (지역별·합계) |
+| `.코강` | V매트릭스 | 장착 중인 강화 코어(레벨·포인트), 스킬 프리셋, 스킬 코어, 쓸만한 스킬, 특수 코어 |
 | `.코디` | 코디 정보 | 헤어·얼굴·피부, 캐시 장비, 캐릭터 이미지 |
 | `.길스` | 길드 스킬 | 소속 길드, 기여도, 길드 개인 스킬 |
 | `.헥사` | 헥사 매트릭스 | 헥사 코어 레벨, 남은 솔 에르다·조각, 헥사 스탯 페이지 |
@@ -149,7 +149,7 @@ GET /api/bot/hexa?name=귀요밍키&world=스카니아
 
 - **전체보기 처리**: 일부 응답에는 제목 뒤에 제로 위드 스페이스(`​`) 500개가 들어 있어 카카오톡에서 '전체보기'로 접힙니다.
 - **코디 이미지**: `/codi` 응답 끝에는 `|||IMAGE|||{이미지URL}`이 붙습니다. 클라이언트에서 이 구분자를 기준으로 텍스트와 이미지 URL을 나눠 처리해야 합니다.
-- **조회 실패**: 캐릭터를 찾을 수 없으면 `캐릭터를 찾을 수 없습니다.` 같은 안내 문구를 반환합니다.
+- **조회 실패**: 캐릭터를 찾을 수 없으면 `캐릭터 정보를 찾을 수 없습니다.` 같은 안내 문구를 반환합니다.
 
 ---
 
@@ -162,8 +162,8 @@ GET /api/bot/hexa?name=귀요밍키&world=스카니아
 
 | 엔드포인트 | 확인하는 넥슨 API |
 |---|---|
-| `/info` | `/character/basic`, `/character/guild`, `/character/pet-equipment`, `/character/set-effect` |
-| `/naesil` | `/character/basic`, `/character/item-equipment`, `/character/symbol`, `/character/hexamatrix-skill`, `/character/hexamatrix-stat`, `/character/link-skill`, `/guild/basic` |
+| `/info` | `/character/basic`, `/character/guild`, `/user/union`, `/character/pet-equipment`, `/character/set-effect` |
+| `/naesil` (.내실·.보스 공용) | `/character/basic`, `/character/item-equipment`, `/character/symbol`, `/character/hexamatrix-skill`, `/character/hexamatrix-stat`, `/character/link-skill`, `/character/guild` |
 | `/vmatrix` | `/character/vmatrix`, `/character/skill-equipment` |
 | `/codi` | `/character/basic`, `/character/beauty-equipment`, `/character/cashitem-equipment` |
 | `/guildskill` | `/character/basic`, `/character/guild`, `/guild/basic` |
@@ -232,5 +232,10 @@ BotController
 
 ## 📝 참고 사항
 
-- **심볼**: 남은 심볼 개수와 필요 메소는 계산식이 아직 적용되지 않아 `[계산식 필요]`로 표시됩니다.
+- **심볼 계산**: 넥슨 API의 `symbol_growth_value`(현재 레벨 구간 성장치)를 기준으로, MAX 레벨(아케인 20 / 어센틱 11)까지 필요한 양을 계산합니다.
+    - 남은 심볼 = 현재 레벨~MAX 요구 성장치 합 − 현재 성장치 (0 미만이면 0)
+    - 필요 메소 = 현재 레벨~MAX 강화 메소 합 (아케인은 소멸의 여로 / 츄츄 아일랜드 이후 지역 공통, 어센틱은 지역별 비용표 적용)
+    - 비용표 출처: 메이플창고 정리표 (어센틱 2026-08-29, 아케인 2026-09-02 기준). 아에르·오디움·도원경 메소는 일부 추정치입니다.
+    - 비용표에 없는 어센틱 지역은 `비용표 미확인`으로 표시되며, 메소 합계에서 제외됩니다.
+    - MVP 등급 심볼 강화 비용 할인은 반영되지 않습니다.
 - **데이터 출처**: 넥슨 Open API를 통해 제공받으며, 게임 내 실시간 정보와 차이가 있을 수 있습니다.
