@@ -4,6 +4,7 @@ import com.classic.maple.service.command.character.*;
 import com.classic.maple.service.command.equipment.BossCommandService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -155,6 +156,13 @@ public class BotController {
     public String getCodiCommand(@RequestParam String name, @RequestParam(required = false, defaultValue = "스카니아") String world) {
         log.info(".코디 요청 - 캐릭터명: {}, 월드: {}", name, world);
         return codiCommandService.getCharacterCodi(name, world);
+    }
+
+    // 카카오톡 링크 미리보기용 HTML 페이지 (text/plain이 아닌 HTML 응답)
+    @GetMapping(value = "/codi/view", produces = MediaType.TEXT_HTML_VALUE + ";charset=UTF-8")
+    public String getCodiPreviewPage(@RequestParam String name, @RequestParam(required = false, defaultValue = "스카니아") String world) {
+        log.info(".코디 미리보기 페이지 요청 - 캐릭터명: {}, 월드: {}", name, world);
+        return codiCommandService.buildPreviewHtml(name, world);
     }
 
     @GetMapping("/guildskill")

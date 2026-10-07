@@ -4,8 +4,12 @@ import com.classic.maple.dto.CodiDTO;
 import com.classic.maple.service.core.NexonApiClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.web.util.HtmlUtils;
+import org.springframework.web.util.UriComponentsBuilder;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 @Slf4j
@@ -14,6 +18,10 @@ import java.util.List;
 public class CodiCommandService {
 
     private final NexonApiClient apiClient;
+
+    // 외부 접근 가능한 서버 주소 (카카오톡 미리보기 크롤러 접근용)
+    @Value("${bot.public-base-url}")
+    private String publicBaseUrl;
 
     public String getCharacterCodi(String characterName, String worldName) {
         String ocid = apiClient.getCharacterOcid(characterName, worldName);
@@ -67,10 +75,52 @@ public class CodiCommandService {
         }
 
         // 🌟 3. 이미지 전송을 위한 식별자 결합
-        String imageUrl = basic.getCharacterImage() != null ? basic.getCharacterImage() : "이미지없음";
+        // 넥슨 원본 URL 대신 og:image 미리보기 페이지 URL 전달
+        String imageUrl = basic.getCharacterImage() != null ? buildPreviewUrl(characterName, worldName) : "이미지없음";
         sb.append("\n|||IMAGE|||").append(imageUrl);
 
         return sb.toString().trim();
+    }
+
+    // 캐릭터 이미지 URL 조회 (조회 실패 시 null)
+    public String getCharacterImageUrl(String characterName, String worldName) {
+        String ocid = apiClient.getCharacterOcid(characterName, worldName);
+        if (ocid == null) return null;
+
+        CodiDTO.Basic basic = apiClient.fetchApiData("/character/basic", ocid, CodiDTO.Basic.class);
+        return basic != null ? basic.getCharacterImage() : null;
+    }
+
+    // 미리보기 페이지 HTML 조립 (og:image 메타 태그로 카카오톡 썸네일 노출)
+    public String buildPreviewHtml(String characterName, String worldName) {
+        String imageUrl = getCharacterImageUrl(characterName, worldName);
+        String title = HtmlUtils.htmlEscape(characterName + "님의 코디");
+
+        StringBuilder html = new StringBuilder();
+        html.append("<!DOCTYPE html><html lang=\"ko\"><head><meta charset=\"UTF-8\">");
+        html.append("<meta property=\"og:title\" content=\"").append(title).append("\">");
+        html.append("<meta property=\"og:description\" content=\"메이플스토리M 코디 이미지\">");
+        if (imageUrl != null) {
+            html.append("<meta property=\"og:image\" content=\"").append(HtmlUtils.htmlEscape(imageUrl)).append("\">");
+        }
+        html.append("<title>").append(title).append("</title></head><body>");
+
+        // 브라우저로 직접 열었을 때 표시용 본문
+        if (imageUrl != null) {
+            html.append("<img src=\"").append(HtmlUtils.htmlEscape(imageUrl)).append("\" alt=\"").append(title).append("\">");
+        } else {
+            html.append("<p>캐릭터 이미지를 찾을 수 없습니다.</p>");
+        }
+        html.append("</body></html>");
+        return html.toString();
+    }
+
+    // 미리보기 페이지 URL 조립 (한글 닉네임·월드 UTF-8 인코딩)
+    private String buildPreviewUrl(String characterName, String worldName) {
+        return UriComponentsBuilder.fromUriString(publicBaseUrl + "/api/bot/codi/view")
+                .queryParam("name", characterName)
+                .queryParam("world", worldName)
+                .build().encode(StandardCharsets.UTF_8).toUriString();
     }
 
     /**
