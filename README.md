@@ -169,7 +169,7 @@ GET /api/bot/hexa?name=귀요밍키&world=스카니아
 | `/guildskill` | `/character/basic`, `/character/guild`, `/guild/basic` |
 | `/hexa` | `/character/basic`, `/character/hexamatrix-skill`, `/character/hexamatrix-stat` |
 
-> 운영 환경에서는 외부에 노출되지 않도록 주의하세요.
+> `local` 프로필에서만 활성화됩니다. `prod` 프로필에서는 등록되지 않아 404를 반환합니다.
 
 ---
 

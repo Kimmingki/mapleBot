@@ -2,6 +2,7 @@ package com.classic.maple.controller;
 
 import com.classic.maple.service.debug.DebugCommandService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Profile;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -10,6 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 @Slf4j
 @RestController
 @RequestMapping("/api/debug")
+@Profile("local") // 로컬 프로필 전용, 운영 환경 미등록
 public class DebugController {
 
     private final DebugCommandService debugCommandService;

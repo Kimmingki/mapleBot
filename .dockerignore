@@ -1,0 +1,6 @@
+# 빌드 산출물 및 IDE 설정
+build/
+.gradle/
+.idea/
+# API 키 파일, 이미지 포함 방지
+src/main/resources/application-secret.properties
