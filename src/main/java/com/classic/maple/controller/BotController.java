@@ -26,8 +26,6 @@ public class BotController {
 
     @GetMapping("/help")
     public String getHelpCommand() {
-        log.info(".명령어(도움말) 요청 수신");
-
         // 카카오톡 '전체보기' 기능을 트리거하기 위한 제로-위드 스페이스(Zero-width space) 500개 생성
         String readMore = "\u200B".repeat(500);
 
