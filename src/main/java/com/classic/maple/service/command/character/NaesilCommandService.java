@@ -10,6 +10,10 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutorService;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -19,21 +23,35 @@ import java.util.regex.Pattern;
 public class NaesilCommandService {
 
     private final NexonApiClient apiClient;
+    private final ExecutorService nexonApiExecutor;
 
     public String getCharacterNaesil(String characterName, String worldName) {
         String ocid = apiClient.getCharacterOcid(characterName, worldName);
         if (ocid == null) return "캐릭터 정보를 찾을 수 없습니다.";
 
+        // 독립 엔드포인트 동시 호출
+        CompletableFuture<NaesilDTO.Basic> basicF = fetchAsync("/character/basic", ocid, NaesilDTO.Basic.class);
+        CompletableFuture<NaesilDTO.Union> unionF = fetchAsync("/user/union", ocid, NaesilDTO.Union.class);
+        CompletableFuture<NaesilDTO.Equip> equipF = fetchAsync("/character/item-equipment", ocid, NaesilDTO.Equip.class);
+        CompletableFuture<NaesilDTO.Symbol> symbolF = fetchAsync("/character/symbol", ocid, NaesilDTO.Symbol.class);
+        CompletableFuture<NaesilDTO.HexaSkill> hexaSkillF = fetchAsync("/character/hexamatrix-skill", ocid, NaesilDTO.HexaSkill.class);
+        CompletableFuture<NaesilDTO.HexaStat> hexaStatF = fetchAsync("/character/hexamatrix-stat", ocid, NaesilDTO.HexaStat.class);
+        CompletableFuture<NaesilDTO.Link> linkF = fetchAsync("/character/link-skill", ocid, NaesilDTO.Link.class);
+
+        // 길드 사슬 (길드명 → oguild_id → 길드 상세), 나머지 호출과 병행
+        CompletableFuture<GuildResult> guildF = fetchAsync("/character/guild", ocid, NaesilDTO.Guild.class)
+                .thenCombineAsync(basicF, (guild, basicInfo) -> loadGuild(guild, basicInfo, worldName), nexonApiExecutor);
+
         StringBuilder sb = new StringBuilder();
         String readMore = "\u200B".repeat(500);
 
-        NaesilDTO.Basic basic = apiClient.fetchApiData("/character/basic", ocid, NaesilDTO.Basic.class);
+        NaesilDTO.Basic basic = join(basicF);
         if (basic == null) return "캐릭터 기본 정보를 불러올 수 없습니다.";
 
         sb.append("🍁 【 내실 요약 】\n");
         sb.append(basic.getCharacterName()).append(" (").append(basic.getWorldName() != null ? basic.getWorldName() : worldName).append(")\n").append(readMore).append("\n");
 
-        NaesilDTO.Union union = apiClient.fetchApiData("/user/union", ocid, NaesilDTO.Union.class);
+        NaesilDTO.Union union = join(unionF);
         if (union != null) {
             sb.append("🍁 【 유니온 】 : ").append(union.getUnionGrade() != null ? union.getUnionGrade() : "정보 없음")
                     .append(" / 【 Lv.").append(union.getUnionLevel() != null ? union.getUnionLevel() : 0).append(" 】\n\n");
@@ -41,7 +59,7 @@ public class NaesilCommandService {
             sb.append("🍁 【 유니온 】 : 정보 없음\n\n");
         }
 
-        NaesilDTO.Equip equip = apiClient.fetchApiData("/character/item-equipment", ocid, NaesilDTO.Equip.class);
+        NaesilDTO.Equip equip = join(equipF);
         if (equip != null) {
             int arcCount = 0, abCount = 0, pitCount = 0, arcSf = 0, abSf = 0;
             double totPot = 0.0, totAdd = 0.0;
@@ -79,7 +97,7 @@ public class NaesilCommandService {
             sb.append("🍁 【 장비 (보스) 】\n - 정보 없음\n\n");
         }
 
-        NaesilDTO.Symbol symbol = apiClient.fetchApiData("/character/symbol", ocid, NaesilDTO.Symbol.class);
+        NaesilDTO.Symbol symbol = join(symbolF);
         if (symbol != null) {
             int arcForce = 0, autForce = 0;
             Pattern p = Pattern.compile("포스 증가 ([0-9]+)");
@@ -105,8 +123,8 @@ public class NaesilCommandService {
             sb.append("🍁 【 심볼 】\n - 정보 없음\n\n");
         }
 
-        NaesilDTO.HexaSkill hexaSkill = apiClient.fetchApiData("/character/hexamatrix-skill", ocid, NaesilDTO.HexaSkill.class);
-        NaesilDTO.HexaStat hexaStat = apiClient.fetchApiData("/character/hexamatrix-stat", ocid, NaesilDTO.HexaStat.class);
+        NaesilDTO.HexaSkill hexaSkill = join(hexaSkillF);
+        NaesilDTO.HexaStat hexaStat = join(hexaStatF);
         sb.append("🍁 【 헥사 】\n");
         if (hexaSkill != null && hexaSkill.getHexaCores() != null) {
             List<String> origin = new ArrayList<>(), mastery = new ArrayList<>(), enhance = new ArrayList<>();
@@ -143,7 +161,7 @@ public class NaesilCommandService {
 
         sb.append("🍁 【 장착 중인 업적 뱃지 】\n장착 중인 뱃지가 없습니다.\n\n");
 
-        NaesilDTO.Link link = apiClient.fetchApiData("/character/link-skill", ocid, NaesilDTO.Link.class);
+        NaesilDTO.Link link = join(linkF);
         sb.append("🍁 【 장착 중인 링크 스킬 】\n");
         boolean linkFound = false;
         if (link != null && link.getLinkSkill() != null && link.getActivePresetNo() != null) {
@@ -166,15 +184,15 @@ public class NaesilCommandService {
         sb.append("\n");
 
         // 🌟 8. 길드 개인 스킬 (완벽 수정본)
-        NaesilDTO.Guild guild = apiClient.fetchApiData("/character/guild", ocid, NaesilDTO.Guild.class);
-        String gName = (guild != null && guild.getGuildName() != null) ? guild.getGuildName() : null;
+        GuildResult guildResult = join(guildF);
+        String gName = guildResult != null ? guildResult.guildName() : null;
 
         sb.append("🍁 【 길드 개인 스킬 (").append(gName != null ? gName : "없음").append(") 】\n");
         if (gName != null && !gName.isEmpty()) {
-            String oguildId = apiClient.getGuildId(gName, basic.getWorldName() != null ? basic.getWorldName() : worldName);
+            String oguildId = guildResult.oguildId();
 
             if (oguildId != null) {
-                NaesilDTO.GuildBasic guildBasic = apiClient.fetchGuildData("/guild/basic", oguildId, NaesilDTO.GuildBasic.class);
+                NaesilDTO.GuildBasic guildBasic = guildResult.guildBasic();
 
                 boolean skillFound = false;
                 if (guildBasic != null && guildBasic.getGuildMember() != null) {
@@ -209,6 +227,37 @@ public class NaesilCommandService {
 
         return sb.toString().trim();
     }
+
+    // 엔드포인트 비동기 호출
+    private <T> CompletableFuture<T> fetchAsync(String endpoint, String ocid, Class<T> responseType) {
+        return CompletableFuture.supplyAsync(() -> apiClient.fetchApiData(endpoint, ocid, responseType), nexonApiExecutor);
+    }
+
+    // 비동기 결과 수집 (실패 시 null)
+    private <T> T join(CompletableFuture<T> future) {
+        try {
+            return future.join();
+        } catch (CompletionException | CancellationException e) {
+            log.warn("내실 비동기 조회 실패: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    // 길드명 → oguild_id → 길드 상세 순차 조회
+    private GuildResult loadGuild(NaesilDTO.Guild guild, NaesilDTO.Basic basic, String worldName) {
+        String gName = (guild != null && guild.getGuildName() != null) ? guild.getGuildName() : null;
+        if (gName == null || gName.isEmpty()) return new GuildResult(gName, null, null);
+
+        String world = (basic != null && basic.getWorldName() != null) ? basic.getWorldName() : worldName;
+        String oguildId = apiClient.getGuildId(gName, world);
+        if (oguildId == null) return new GuildResult(gName, null, null);
+
+        NaesilDTO.GuildBasic guildBasic = apiClient.fetchGuildData("/guild/basic", oguildId, NaesilDTO.GuildBasic.class);
+        return new GuildResult(gName, oguildId, guildBasic);
+    }
+
+    // 길드 사슬 결과 묶음
+    private record GuildResult(String guildName, String oguildId, NaesilDTO.GuildBasic guildBasic) {}
 
     private List<NaesilDTO.Equip.Item> findBossPreset(NaesilDTO.Equip equip) {
         if (equip.getEquipmentPreset() == null || equip.getEquipmentPreset().isEmpty()) {
