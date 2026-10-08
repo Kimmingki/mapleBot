@@ -34,7 +34,8 @@ public class BossCommandService {
         int arcaneStarforce = 0, absolStarforce = 0;
         double totalPotential = 0.0, totalAdditional = 0.0;
         Map<String, Integer> soulMap = new HashMap<>();
-        List<String> pitchedItems = List.of("몽환의 벨트", "거대한 공포", "루즈 컨트롤 머신 마크", "마력이 깃든 안대", "고통의 근원", "창세의 뱃지", "저주받은 마도서", "저주받은 적의 마도서");
+        // 칠흑 세트 판별용 장비명 (부분 일치, 직업별 미트라의 분노 포함)
+        List<String> pitchedItems = List.of("몽환의 벨트", "거대한 공포", "루즈 컨트롤 머신 마크", "마력이 깃든 안대", "고통의 근원", "창세의 뱃지", "커맨더 포스 이어링", "미트라의 분노");
 
         StringBuilder detailSb = new StringBuilder();
         detailSb.append("\n⭒ 착용 장비 상세 (보스 세팅)\n\n");
@@ -44,6 +45,8 @@ public class BossCommandService {
 
             if (name.contains("아케인셰이드")) arcaneCount++;
             else if (name.contains("앱솔랩스")) absolCount++;
+            // 저주받은 마도서: 색상 표기 차이 무관 공통 판별
+            else if (name.contains("저주받은") && name.contains("마도서")) pitchedCount++;
             else {
                 for (String pitched : pitchedItems) {
                     if (name.contains(pitched)) { pitchedCount++; break; }
