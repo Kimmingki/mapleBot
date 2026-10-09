@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 @Service
 @RequiredArgsConstructor
@@ -18,14 +19,20 @@ public class InfoCommandService {
         String ocid = apiClient.getCharacterOcid(characterName, worldName);
         if (ocid == null) return "캐릭터를 찾을 수 없습니다.";
 
+        // 독립 엔드포인트 동시 호출
+        CompletableFuture<InfoDTO.Basic> basicF = apiClient.fetchApiDataAsync("/character/basic", ocid, InfoDTO.Basic.class);
+        CompletableFuture<InfoDTO.Guild> guildF = apiClient.fetchApiDataAsync("/character/guild", ocid, InfoDTO.Guild.class);
+        CompletableFuture<InfoDTO.Union> unionF = apiClient.fetchApiDataAsync("/user/union", ocid, InfoDTO.Union.class);
+        CompletableFuture<InfoDTO.Pet> petF = apiClient.fetchApiDataAsync("/character/pet-equipment", ocid, InfoDTO.Pet.class);
+
         StringBuilder sb = new StringBuilder();
 
         // 1. 기본 정보
-        InfoDTO.Basic basic = apiClient.fetchApiData("/character/basic", ocid, InfoDTO.Basic.class);
+        InfoDTO.Basic basic = NexonApiClient.join(basicF);
         if (basic == null) return "기본 정보를 불러올 수 없습니다.";
 
         // 2. 길드 정보
-        InfoDTO.Guild guild = apiClient.fetchApiData("/character/guild", ocid, InfoDTO.Guild.class);
+        InfoDTO.Guild guild = NexonApiClient.join(guildF);
         String guildName = (guild != null && guild.getGuildName() != null) ? guild.getGuildName() : "없음";
 
         // 성별 및 생성일 포맷팅
@@ -44,7 +51,7 @@ public class InfoCommandService {
         sb.append("생성일 : ").append(createDate).append("\n\n");
 
         // 3. 유니온 정보
-        InfoDTO.Union union = apiClient.fetchApiData("/user/union", ocid, InfoDTO.Union.class);
+        InfoDTO.Union union = NexonApiClient.join(unionF);
         sb.append("🍁 【 유니온 】\n");
         if (union != null) {
             sb.append(union.getUnionGrade() != null ? union.getUnionGrade() : "정보 없음")
@@ -54,7 +61,7 @@ public class InfoCommandService {
         }
 
         // 4. 펫 & 세트 효과 정보
-        InfoDTO.Pet pet = apiClient.fetchApiData("/character/pet-equipment", ocid, InfoDTO.Pet.class);
+        InfoDTO.Pet pet = NexonApiClient.join(petF);
         sb.append("🍁 【 장착 펫 】\n");
         if (pet != null) {
             List<String> pets = new ArrayList<>();
@@ -94,4 +101,4 @@ public class InfoCommandService {
         return String.format("🍁 【 경험치 정보 】\n%s (Lv.%d)\n현재 경험치: %d",
                 basic.getCharacterName(), basic.getCharacterLevel(), basic.getCharacterExp());
     }
-}
+}

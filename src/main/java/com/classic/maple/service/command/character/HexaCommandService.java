@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 @Service
 @RequiredArgsConstructor
@@ -33,12 +34,17 @@ public class HexaCommandService {
         String ocid = apiClient.getCharacterOcid(characterName, worldName);
         if (ocid == null) return "캐릭터 정보를 찾을 수 없습니다.";
 
+        // 기본 정보·헥사 스킬·헥사 스탯 동시 호출
+        CompletableFuture<VMatrixDTO.Basic> basicF = apiClient.fetchApiDataAsync("/character/basic", ocid, VMatrixDTO.Basic.class);
+        CompletableFuture<HexaDTO.SkillInfo> skillInfoF = apiClient.fetchApiDataAsync("/character/hexamatrix-skill", ocid, HexaDTO.SkillInfo.class);
+        CompletableFuture<HexaDTO.StatInfo> statInfoF = apiClient.fetchApiDataAsync("/character/hexamatrix-stat", ocid, HexaDTO.StatInfo.class);
+
         // 이름 추출을 위해 Basic 호출
-        VMatrixDTO.Basic basic = apiClient.fetchApiData("/character/basic", ocid, VMatrixDTO.Basic.class);
+        VMatrixDTO.Basic basic = NexonApiClient.join(basicF);
         if (basic == null) return "기본 정보를 불러올 수 없습니다.";
 
-        HexaDTO.SkillInfo skillInfo = apiClient.fetchApiData("/character/hexamatrix-skill", ocid, HexaDTO.SkillInfo.class);
-        HexaDTO.StatInfo statInfo = apiClient.fetchApiData("/character/hexamatrix-stat", ocid, HexaDTO.StatInfo.class);
+        HexaDTO.SkillInfo skillInfo = NexonApiClient.join(skillInfoF);
+        HexaDTO.StatInfo statInfo = NexonApiClient.join(statInfoF);
 
         StringBuilder sb = new StringBuilder();
         String readMore = "\u200B".repeat(500);

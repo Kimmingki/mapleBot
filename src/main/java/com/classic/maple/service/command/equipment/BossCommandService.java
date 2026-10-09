@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -22,8 +23,12 @@ public class BossCommandService {
         String ocid = apiClient.getCharacterOcid(characterName, worldName);
         if (ocid == null) return "캐릭터 정보를 찾을 수 없습니다.";
 
-        CharacterBasicDTO basic = apiClient.fetchApiData("/character/basic", ocid, CharacterBasicDTO.class);
-        ItemEquipmentDTO equip = apiClient.fetchApiData("/character/item-equipment", ocid, ItemEquipmentDTO.class);
+        // 기본 정보·장비 동시 호출
+        CompletableFuture<CharacterBasicDTO> basicF = apiClient.fetchApiDataAsync("/character/basic", ocid, CharacterBasicDTO.class);
+        CompletableFuture<ItemEquipmentDTO> equipF = apiClient.fetchApiDataAsync("/character/item-equipment", ocid, ItemEquipmentDTO.class);
+
+        CharacterBasicDTO basic = NexonApiClient.join(basicF);
+        ItemEquipmentDTO equip = NexonApiClient.join(equipF);
 
         if (basic == null || equip == null) return "장비 데이터를 불러올 수 없습니다.";
 
@@ -181,4 +186,4 @@ public class BossCommandService {
         }
         return sum;
     }
-}
+}

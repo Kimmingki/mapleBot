@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 @Slf4j
 @Service
@@ -46,11 +47,16 @@ public class VMatrixCommandService {
         String ocid = apiClient.getCharacterOcid(characterName, worldName);
         if (ocid == null) return "캐릭터 정보를 찾을 수 없습니다.";
 
-        VMatrixDTO.Basic basic = apiClient.fetchApiData("/character/basic", ocid, VMatrixDTO.Basic.class);
+        // 기본 정보·V매트릭스·스킬 프리셋 동시 호출
+        CompletableFuture<VMatrixDTO.Basic> basicF = apiClient.fetchApiDataAsync("/character/basic", ocid, VMatrixDTO.Basic.class);
+        CompletableFuture<VMatrixDTO.VCoreInfo> vCoreInfoF = apiClient.fetchApiDataAsync("/character/vmatrix", ocid, VMatrixDTO.VCoreInfo.class);
+        CompletableFuture<VMatrixDTO.SkillEquip> skillEquipF = apiClient.fetchApiDataAsync("/character/skill-equipment", ocid, VMatrixDTO.SkillEquip.class);
+
+        VMatrixDTO.Basic basic = NexonApiClient.join(basicF);
         if (basic == null) return "기본 정보를 불러올 수 없습니다.";
 
-        VMatrixDTO.VCoreInfo vCoreInfo = apiClient.fetchApiData("/character/vmatrix", ocid, VMatrixDTO.VCoreInfo.class);
-        VMatrixDTO.SkillEquip skillEquip = apiClient.fetchApiData("/character/skill-equipment", ocid, VMatrixDTO.SkillEquip.class);
+        VMatrixDTO.VCoreInfo vCoreInfo = NexonApiClient.join(vCoreInfoF);
+        VMatrixDTO.SkillEquip skillEquip = NexonApiClient.join(skillEquipF);
 
         StringBuilder sb = new StringBuilder();
         String readMore = "\u200B".repeat(500);

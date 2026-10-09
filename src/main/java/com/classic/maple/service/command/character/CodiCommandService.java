@@ -11,6 +11,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 @Slf4j
 @Service
@@ -27,11 +28,16 @@ public class CodiCommandService {
         String ocid = apiClient.getCharacterOcid(characterName, worldName);
         if (ocid == null) return "캐릭터 정보를 찾을 수 없습니다.";
 
-        CodiDTO.Basic basic = apiClient.fetchApiData("/character/basic", ocid, CodiDTO.Basic.class);
+        // 기본 정보·뷰티·캐시 장비 동시 호출
+        CompletableFuture<CodiDTO.Basic> basicF = apiClient.fetchApiDataAsync("/character/basic", ocid, CodiDTO.Basic.class);
+        CompletableFuture<CodiDTO.Beauty> beautyF = apiClient.fetchApiDataAsync("/character/beauty-equipment", ocid, CodiDTO.Beauty.class);
+        CompletableFuture<CodiDTO.CashEquip> cashEquipF = apiClient.fetchApiDataAsync("/character/cashitem-equipment", ocid, CodiDTO.CashEquip.class);
+
+        CodiDTO.Basic basic = NexonApiClient.join(basicF);
         if (basic == null) return "기본 정보를 불러올 수 없습니다.";
 
-        CodiDTO.Beauty beauty = apiClient.fetchApiData("/character/beauty-equipment", ocid, CodiDTO.Beauty.class);
-        CodiDTO.CashEquip cashEquip = apiClient.fetchApiData("/character/cashitem-equipment", ocid, CodiDTO.CashEquip.class);
+        CodiDTO.Beauty beauty = NexonApiClient.join(beautyF);
+        CodiDTO.CashEquip cashEquip = NexonApiClient.join(cashEquipF);
 
         StringBuilder sb = new StringBuilder();
         sb.append("🍁 【 ").append(basic.getCharacterName()).append("님의 코디 정보 】\n\n");

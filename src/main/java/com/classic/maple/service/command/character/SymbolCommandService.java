@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.text.DecimalFormat;
+import java.util.concurrent.CompletableFuture;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -87,8 +88,12 @@ public class SymbolCommandService {
         String ocid = apiClient.getCharacterOcid(characterName, worldName);
         if (ocid == null) return "캐릭터 정보를 찾을 수 없습니다.";
 
-        NaesilDTO.Basic basic = apiClient.fetchApiData("/character/basic", ocid, NaesilDTO.Basic.class);
-        NaesilDTO.Symbol symbol = apiClient.fetchApiData("/character/symbol", ocid, NaesilDTO.Symbol.class);
+        // 기본 정보·심볼 동시 호출
+        CompletableFuture<NaesilDTO.Basic> basicF = apiClient.fetchApiDataAsync("/character/basic", ocid, NaesilDTO.Basic.class);
+        CompletableFuture<NaesilDTO.Symbol> symbolF = apiClient.fetchApiDataAsync("/character/symbol", ocid, NaesilDTO.Symbol.class);
+
+        NaesilDTO.Basic basic = NexonApiClient.join(basicF);
+        NaesilDTO.Symbol symbol = NexonApiClient.join(symbolF);
 
         if (basic == null || symbol == null) return "심볼 정보를 불러올 수 없습니다.";
 

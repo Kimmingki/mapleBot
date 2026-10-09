@@ -1,27 +1,34 @@
 package com.classic.maple.service.core;
 
 import com.classic.maple.dto.OcidDTO;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
+import java.net.http.HttpClient;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Map;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class NexonApiClient {
 
     @Value("${nexon.api.key}")
@@ -39,6 +46,9 @@ public class NexonApiClient {
 
     private final RestTemplate restTemplate = createRestTemplate();
 
+    // 넥슨 API 병렬 호출 전용 실행기
+    private final ExecutorService nexonApiExecutor;
+
     // 전역 호출 슬롯 (다음 호출 가능 시각, 나노초)
     private final AtomicLong nextSlotNanos = new AtomicLong(System.nanoTime());
 
@@ -48,11 +58,13 @@ public class NexonApiClient {
     // 월드:길드명 → oguild_id
     private final Map<String, CachedId> guildIdCache = new ConcurrentHashMap<>();
 
-    // 연결/응답 타임아웃 적용 RestTemplate
+    // JDK HttpClient 기반 RestTemplate (연결 재사용, 연결/응답 타임아웃 적용)
     private static RestTemplate createRestTemplate() {
-        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-        factory.setConnectTimeout(3000);
-        factory.setReadTimeout(5000);
+        HttpClient httpClient = HttpClient.newBuilder()
+                .connectTimeout(Duration.ofMillis(3000))
+                .build();
+        JdkClientHttpRequestFactory factory = new JdkClientHttpRequestFactory(httpClient);
+        factory.setReadTimeout(Duration.ofMillis(5000));
         return new RestTemplate(factory);
     }
 
@@ -102,6 +114,21 @@ public class NexonApiClient {
             return null;
         } catch (RestClientException e) {
             log.warn("{} 호출 실패: {}", endpoint, e.getMessage());
+            return null;
+        }
+    }
+
+    // 캐릭터 데이터 비동기 호출 (전용 실행기, 실패 시 null 결과)
+    public <T> CompletableFuture<T> fetchApiDataAsync(String endpoint, String ocid, Class<T> responseType) {
+        return CompletableFuture.supplyAsync(() -> fetchApiData(endpoint, ocid, responseType), nexonApiExecutor);
+    }
+
+    // 비동기 결과 수집 (실행 실패·취소 시 null)
+    public static <T> T join(CompletableFuture<T> future) {
+        try {
+            return future.join();
+        } catch (CompletionException | CancellationException e) {
+            log.warn("비동기 조회 실패: {}", e.getMessage());
             return null;
         }
     }
@@ -180,4 +207,4 @@ public class NexonApiClient {
             return System.currentTimeMillis() > expiresAtMillis;
         }
     }
-}
+}
