@@ -2,6 +2,7 @@ package com.classic.maple.controller;
 
 import com.classic.maple.service.command.character.*;
 import com.classic.maple.service.command.equipment.BossCommandService;
+import com.classic.maple.service.command.info.GuideImageCommandService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
@@ -24,6 +25,7 @@ public class BotController {
     private final CodiCommandService codiCommandService;
     private final GuildSkillCommandService guildSkillCommandService;
     private final HexaCommandService hexaCommandService;
+    private final GuideImageCommandService guideImageCommandService;
 
     @GetMapping("/help")
     public String getHelpCommand() {
@@ -175,5 +177,17 @@ public class BotController {
     public String getHexaCommand(@RequestParam String name, @RequestParam(required = false, defaultValue = "스카니아") String world) {
         log.info(".헥사 요청 - 캐릭터명: {}, 월드: {}", name, world);
         return hexaCommandService.getCharacterHexa(name, world);
+    }
+
+    @GetMapping("/guide")
+    public String getGuideImageCommand(@RequestParam String key) {
+        log.info(".{} 이미지 요청", key);
+        return guideImageCommandService.getGuideImage(key);
+    }
+
+    // 정보 이미지 링크 미리보기용 HTML 페이지
+    @GetMapping(value = "/guide/view", produces = MediaType.TEXT_HTML_VALUE + ";charset=UTF-8")
+    public String getGuidePreviewPage(@RequestParam String key) {
+        return guideImageCommandService.buildPreviewHtml(key);
     }
 }
