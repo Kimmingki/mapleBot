@@ -26,6 +26,7 @@ public class BotController {
     private final GuildSkillCommandService guildSkillCommandService;
     private final HexaCommandService hexaCommandService;
     private final GuideImageCommandService guideImageCommandService;
+    private final SpyCommandService spyCommandService;
 
     @GetMapping("/help")
     public String getHelpCommand() {
@@ -56,6 +57,8 @@ public class BotController {
                 ⭑ 길스: 적용 중인 길드 스킬 정보
 
                 ⭑ 경험치: 현재 레벨 및 누적 경험치
+
+                ⭑ 염탐: 메이플M 월드 캐릭터 페이지 링크
 
 
                 『 장비 정보 조회 』
@@ -154,6 +157,13 @@ public class BotController {
     public String getHexaCommand(@RequestParam String name, @RequestParam(required = false, defaultValue = "스카니아") String world) {
         log.info(".헥사 요청 - 캐릭터명: {}, 월드: {}", name, world);
         return hexaCommandService.getCharacterHexa(name, world);
+    }
+
+    // maplemworlds 캐릭터 페이지 링크 (서버 미입력 시 스카니아)
+    @GetMapping("/spy")
+    public String getSpyCommand(@RequestParam String name, @RequestParam(required = false, defaultValue = "스카니아") String world) {
+        log.info(".염탐 요청 - 캐릭터명: {}, 월드: {}", name, world);
+        return spyCommandService.getCharacterSpyLink(name, world);
     }
 
     @GetMapping("/guide")
