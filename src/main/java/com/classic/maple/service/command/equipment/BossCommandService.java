@@ -61,7 +61,8 @@ public class BossCommandService {
             // 🌟 기본 스타포스 파싱
             int baseSf = 0;
             if (item.getStarforce() != null && !item.getStarforce().isEmpty()) {
-                try { baseSf = Integer.parseInt(item.getStarforce()); } catch (Exception ignored) {}
+                // 숫자 외 값은 0성 처리
+                try { baseSf = Integer.parseInt(item.getStarforce()); } catch (NumberFormatException ignored) {}
             }
 
             // 🌟 합산용 스타포스 (한벌옷이면 2배 적용)
@@ -78,6 +79,9 @@ public class BossCommandService {
                 soulMap.put(sName, soulMap.getOrDefault(sName, 0) + 1);
             }
 
+            // 표기할 옵션 없는 장신구·훈장·칭호 등은 상세 생략 (세트·스타포스 집계 이후)
+            if (!hasDisplayOption(item)) continue;
+
             String gradeStr = item.getItemGrade() != null ? item.getItemGrade() : "";
             String gradeInitial = "N", gradeIcon = "Ⓝ";
             switch (gradeStr) {
@@ -93,10 +97,8 @@ public class BossCommandService {
             // 개별 아이템 표기에는 원본 스타포스(baseSf)를 사용
             String sfText = baseSf > 0 ? " (" + baseSf + "✰)" : "";
             detailSb.append(String.format("『 %s 』 %s%s\n", gradeInitial, name, sfText));
-            if (item.getCuttableCount() != null) detailSb.append(" ⭒ 남은 가위 사용 횟수 : ").append(item.getCuttableCount()).append("회\n\n");
-            else detailSb.append("\n");
 
-            appendOptions(detailSb, "기본", item.getBaseOption());
+            // 카톡 가독성용 표기 범위: 추가옵션·잠재능력·에디셔널·소울
             appendOptions(detailSb, "추가옵션", item.getAddOption());
 
             totalPotential += sumStatPercentages(item.getPotentialOption());
@@ -108,7 +110,8 @@ public class BossCommandService {
             if (item.getSoulInfo() != null && item.getSoulInfo().getSoulOption() != null) {
                 detailSb.append(" ⭒ 소울 : ").append(item.getSoulInfo().getSoulOption()).append("\n");
             }
-            detailSb.append("\n");
+            // 장비 간 구분용 빈 줄 1개 유지
+            appendBlankLine(detailSb);
         }
 
         StringBuilder sb = new StringBuilder();
@@ -158,6 +161,30 @@ public class BossCommandService {
         return bestPreset;
     }
 
+    // 상세 표기 대상 옵션(추가옵션·잠재능력·에디셔널·소울) 존재 여부
+    private boolean hasDisplayOption(ItemEquipmentDTO.ItemData item) {
+        if (hasValidOption(item.getAddOption())) return true;
+        if (hasValidOption(item.getPotentialOption())) return true;
+        if (hasValidOption(item.getAdditionalOption())) return true;
+        return item.getSoulInfo() != null && item.getSoulInfo().getSoulOption() != null;
+    }
+
+    // 이름·값 모두 있는 옵션 1개 이상 여부 (appendOptions 출력 조건과 동일)
+    private boolean hasValidOption(List<ItemEquipmentDTO.ItemOption> options) {
+        if (options == null) return false;
+        for (ItemEquipmentDTO.ItemOption opt : options) {
+            if (opt.getOptionName() != null && opt.getOptionValue() != null) return true;
+        }
+        return false;
+    }
+
+    // 끝이 이미 빈 줄이면 생략, 중복 빈 줄 방지
+    private void appendBlankLine(StringBuilder sb) {
+        int len = sb.length();
+        if (len >= 2 && sb.charAt(len - 1) == '\n' && sb.charAt(len - 2) == '\n') return;
+        sb.append("\n");
+    }
+
     private void appendOptions(StringBuilder sb, String prefix, List<ItemEquipmentDTO.ItemOption> options) {
         if (options == null || options.isEmpty()) return;
         boolean hasOption = false;
@@ -180,7 +207,8 @@ public class BossCommandService {
             if (name.contains("물리 대미지") || name.contains("마법 대미지") || name.contains("보스 공격력") || name.contains("최종 대미지")) {
                 Matcher matcher = pattern.matcher(opt.getOptionValue());
                 if (matcher.find()) {
-                    try { sum += Double.parseDouble(matcher.group(1)); } catch (Exception ignored) {}
+                    // "1.2.3" 등 비정상 숫자는 합산 제외
+                    try { sum += Double.parseDouble(matcher.group(1)); } catch (NumberFormatException ignored) {}
                 }
             }
         }
